@@ -14,7 +14,9 @@ using Vixen.Sys.Managers;
 using Vixen.Sys.Props;
 using VixenApplication.SetupDisplay.Wizards.Factory;
 using VixenApplication.SetupDisplay.Wizards.Pages;
+using VixenApplication.SetupDisplay.Wizards.PropFactories;
 using VixenApplication.SetupDisplay.Wizards.Wizard;
+using VixenModules.Editor.PropWizard;
 using DragDropEffects = System.Windows.DragDropEffects;
 using IDropTarget = GongSolutions.Wpf.DragDrop.IDropTarget;
 
@@ -555,16 +557,49 @@ namespace VixenApplication.SetupDisplay.ViewModels
 		{
 			if(Enum.TryParse(propType, out PropType result))
 			{
-				var prop = await GenerateProp(result);
+				IPropGroup propGroup = await GeneratePropNodes(result);
 
-				if (prop != null)
+				if (propGroup != null)
 				{
-					PropManager.AddProp(prop, SelectedItem != null ? SelectedItem.PropNode : PropManager.RootNode);
-
-					//Ensure parent is expanded
+					// Determine the parent of the group or props
+					PropNode pNodeParent;
 					if (SelectedItem != null)
 					{
-						SelectedItem.IsExpanded = true;
+						pNodeParent = SelectedItem.PropNode;
+					}
+					else
+					{
+						pNodeParent = PropManager.RootNode;
+					}
+
+					// If the props are to be grouped then...
+					PropNode groupNode;
+					if (propGroup.CreateGroup)
+					{
+						// Create the group prop node
+						groupNode = new(propGroup.GroupName);
+						
+						// Add the group node to the tree
+						PropManager.AddPropNode(groupNode, pNodeParent);
+
+						// Make the group node the parent
+						pNodeParent = groupNode;
+					}
+
+					// Loop over the props
+					foreach (IProp prop in propGroup.Props)
+					{
+						if (prop != null)
+						{
+							// Add the prop to the tree																					
+							PropManager.AddProp(prop, pNodeParent);
+
+							//Ensure parent is expanded
+							if (SelectedItem != null)
+							{
+								SelectedItem.IsExpanded = true;
+							}
+						}
 					}
 				}
 			}
@@ -949,10 +984,8 @@ namespace VixenApplication.SetupDisplay.ViewModels
 			return mbs.GetUserInput($"Please enter the {nameType} name.", $"Create {nameType}", suggestedName);
 		}
 
-		private async Task<IProp?> GenerateProp(PropType propType)
-		{
-			//TODO ask the user what type of Prop We are going to assume Arch for now.
-
+		private async Task<IPropGroup> GeneratePropNodes(PropType propType)
+		{			
 			var dependencyResolver = this.GetDependencyResolver();
 
 			// Get the Catel type factory
@@ -965,36 +998,38 @@ namespace VixenApplication.SetupDisplay.ViewModels
 			baseColorService.SetBaseColorScheme("Dark");
 
 			// Use the type factory to create the prop wizard
-			IPropWizard wizard = PropWizardFactory.CreateInstance(propType, typeFactory);
+			(IPropWizard Wizard, IPropFactory Factory) propWizard = PropWizardFactory.CreateInstance(propType, typeFactory);
 
 			// Configure the wizard window to show up in the Windows task bar
-			wizard.ShowInTaskbarWrapper = true;
+			propWizard.Wizard.ShowInTaskbarWrapper = true;
 
 			// Enable the help button
-			wizard.ShowHelpWrapper = true;
+			propWizard.Wizard.ShowHelpWrapper = true;
 
 			// Configure the wizard to allow the user to jump between already visited pages
-			wizard.AllowQuickNavigationWrapper = true;
+			propWizard.Wizard.AllowQuickNavigationWrapper = true;
 
 			// Allow Catel to help determine when it is safe to transition to the next wizard page
-			wizard.HandleNavigationStatesWrapper = true;
+			propWizard.Wizard.HandleNavigationStatesWrapper = true;
 
 			// Configure the wizard to NOT cache views
-			wizard.CacheViewsWrapper = false;
+			propWizard.Wizard.CacheViewsWrapper = false;
 
 			// Configure the wizard with a navigation controller														
-			wizard.NavigationControllerWrapper = typeFactory.CreateInstanceWithParametersAndAutoCompletion<PropWizardNavigationController>(wizard);
+			propWizard.Wizard.NavigationControllerWrapper = typeFactory.CreateInstanceWithParametersAndAutoCompletion<PropWizardNavigationController>(propWizard.Wizard);
 
 			var ws = dependencyResolver.Resolve<IWizardService>();
-			if (ws != null && wizard != null)
+			if (ws != null && propWizard.Wizard != null)
 			{
-				bool? result = (await ws.ShowWizardAsync(wizard)).DialogResult;
+				bool? result = (await ws.ShowWizardAsync(propWizard.Wizard)).DialogResult;
 				// Determine if the wizard was cancelled 
 				if (result.HasValue && result.Value)
 				{
-					//User did not cancel
-					var page = (IPropWizardFinalPage)wizard.Pages.Single(page => page is IPropWizardFinalPage);
-					return page.GetProp();
+					// Have the prop factory create the props from the wizard data
+					IPropGroup propGroup = propWizard.Factory.GetProps(propWizard.Wizard);
+
+					// User did not cancel					
+					return propGroup;  
 				}
 			}
 
