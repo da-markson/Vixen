@@ -6,23 +6,14 @@ namespace Vixen.Sys.Props.Model
 {
 	public abstract class BaseLightModel : BasePropModel, ILightPropModel
 	{
-		private int _rotationAngle;
 		private ObservableCollection<NodePoint> _nodes = new();
 
+		public abstract void DrawModel();
 
 		public ObservableCollection<NodePoint> Nodes
 		{
 			get => _nodes;
 			set => SetProperty(ref _nodes, value);
-		}
-
-		/// <summary>
-		/// The angle at which the core Prop is rotated.
-		/// </summary>
-		public int RotationAngle
-		{
-			get => _rotationAngle;
-			set => SetProperty(ref _rotationAngle, value);
 		}
 
 		/// <summary>
@@ -39,13 +30,15 @@ namespace Vixen.Sys.Props.Model
 			double sinTheta = Math.Sin(angleInRadians);
 			foreach (var nodePoint in nodePoints)
 			{
-				nodePoint.X =
+				double x =
 					cosTheta * (nodePoint.X - centerX) -
-						sinTheta * (nodePoint.Y - centerY) + centerX;
-				nodePoint.Y =
+						sinTheta * (nodePoint.Y - centerY);
+				 double y =
 					sinTheta * (nodePoint.X - centerX) +
-					 cosTheta * (nodePoint.Y - centerY) + centerY;
+					 cosTheta * (nodePoint.Y - centerY);
 
+				nodePoint.X = x + centerX;
+				nodePoint.Y = y + centerY;
 			}
 		}
 
