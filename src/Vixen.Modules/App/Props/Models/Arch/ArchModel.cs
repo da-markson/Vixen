@@ -7,70 +7,33 @@ namespace VixenModules.App.Props.Models.Arch
 	/// Maintains an Arch prop model.
 	/// </summary>
 	public class ArchModel: BaseLightModel
-	{                        
-		#region Constructors
+	{
+		private Arch _arch;
 
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		public ArchModel():this(25)
+		public ArchModel(Arch arch)
         {
-            
+			_arch = arch;
+            Nodes.AddRange<NodePoint>(GetArchPoints(_arch.NodeCount, _arch.LightSize, _arch.Rotation));
         }
 
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="nodeCount">Number of nodes in the arch</param>
-		/// <param name="nodeSize">Size of the nodes</param>
         public ArchModel(int nodeCount, int nodeSize = 2)
         {
             _nodeCount = nodeCount;
             _nodeSize = nodeSize;
-            Nodes.AddRange<NodePoint>(Get2DNodePoints());
-			ThreeDNodes = new(Get3DNodePoints());			
+			Nodes.AddRange<NodePoint>(Get2DNodePoints());
+			ThreeDNodes = new(Get3DNodePoints());
 			PropertyChanged += PropertyModelChanged;
+
+			Nodes.AddRange<NodePoint>(GetArchPoints(_nodeCount, _nodeSize, RotationAngle));
+			PropertyChanged += ArchModel_PropertyChanged;
         }
 
-		#endregion
-
-		#region Protected Abstract Overrides
-		
-		/// <inheritdoc/>				
-		protected override IEnumerable<NodePoint> Get2DNodePoints()
+		private void ArchModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
 		{
-			return GetArchPoints(_nodeCount, _nodeSize, RotationAngle);
+            //TODO make this smarter to do the minimal to add, subtract, or update node size or rotation angle.
+            Nodes.Clear();
+            Nodes.AddRange<NodePoint>(GetArchPoints(_nodeCount, _nodeSize, RotationAngle));
 		}
-
-		/// <inheritdoc/>				
-		protected override IEnumerable<NodePoint> Get3DNodePoints()
-		{
-			return Get3DNodePoints(_nodeCount, _nodeSize);
-		}
-
-		#endregion
-
-		#region Public Properties
-
-		private int _nodeSize;
-
-		public int NodeSize
-        {
-            get => _nodeSize;
-            set => SetProperty(ref _nodeSize, value);
-        }
-
-		private int _nodeCount;
-
-		public int NodeCount
-        {
-            get => _nodeCount;
-            set => SetProperty(ref _nodeCount, value);
-        }
-
-		#endregion
-
-		#region Private Methods
 
 		private static List<NodePoint> GetArchPoints(double numPoints, int size, int rotationAngle)
         {
@@ -79,16 +42,16 @@ namespace VixenModules.App.Props.Models.Arch
             double yScale = 1;
             double radianIncrement = Math.PI / (numPoints - 1);
 
-            double t = Math.PI;
-            while (vertices.Count < numPoints)
-            {
-                double x = xScale + xScale * Math.Cos(t);
-                double y = yScale + yScale * Math.Sin(t);
-                vertices.Add(new NodePoint(x, y){Size = size});
-                t += radianIncrement;
-            }
+			double t = Math.PI;
+			while (vertices.Count < numPoints)
+			{
+				double x = (xScale + xScale * Math.Cos(t));
+				double y = (yScale + yScale * Math.Sin(t));
+				vertices.Add(new NodePoint(x, y) { Size = size });
+				t += radianIncrement;
+			}
 
-            if (rotationAngle != 0)
+			if (rotationAngle != 0)
             {
                 RotateNodePoints(vertices, rotationAngle);
             }
