@@ -20,20 +20,6 @@ namespace Vixen.Sys.Props.Model
 		}
 
 		/// <summary>
-		/// Updates the nodes when a model property changes.
-		/// </summary>
-		/// <param name="sender">Event sender</param>
-		/// <param name="e">Event arguments</param>
-		protected void PropertyModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-		{
-			//TODO make this smarter to do the minimal to add, subtract, or update node size or rotation angle.
-			Nodes.Clear();
-			Nodes.AddRange(Get2DNodePoints());
-			ThreeDNodes.Clear();
-			ThreeDNodes.AddRange(Get3DNodePoints());
-		}
-
-		/// <summary>
 		/// Rotates the NodePoints around the center of a 0,1 matrix.
 		/// </summary>
 		/// <param name="nodePoints"></param>
@@ -89,21 +75,9 @@ namespace Vixen.Sys.Props.Model
 		
 		private ObservableCollection<NodePoint> _threeDNodes = new();
 
-		public ObservableCollection<NodePoint> ThreeDNodes
-		{
-			get => _threeDNodes;
-			set => SetProperty(ref _threeDNodes, value);
-		}
-
-		private int _rotationAngle;
-
-		/// <summary>
-		/// The angle at which the core Prop is rotated.
-		/// </summary>
-		public int RotationAngle
-		{
-			get => _rotationAngle;
-			set => SetProperty(ref _rotationAngle, value);
+				nodePoint.X = x + centerX;
+				nodePoint.Y = y + centerY;
+			}
 		}
 
 		#endregion
