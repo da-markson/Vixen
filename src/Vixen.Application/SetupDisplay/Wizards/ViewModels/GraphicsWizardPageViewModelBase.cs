@@ -31,6 +31,13 @@ namespace VixenApplication.SetupDisplay.Wizards.ViewModels
 			// Create the prop drawing engine
 			DrawingEngine = new OpenGLPropDrawingEngine(propModels);
 
+			// Initialize the Rotation collection
+			ObservableCollection<AxisRotationModel> rotations = new ObservableCollection<AxisRotationModel>();
+			rotations.Add(new AxisRotationModel() { Axis = Axis.XAxis, RotationAngle = 0 });
+			rotations.Add(new AxisRotationModel() { Axis = Axis.YAxis, RotationAngle = 0 });
+			rotations.Add(new AxisRotationModel() { Axis = Axis.ZAxis, RotationAngle = 0 });
+			Rotations = AxisRotationViewModel.ConvertToViewModel(rotations);
+
 			foreach (var rotation in Rotations)
 			{
 				rotation.RotationChanged += OnRotationChanged;

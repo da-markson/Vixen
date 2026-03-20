@@ -12,23 +12,25 @@ namespace VixenApplication.SetupDisplay.Wizards.PropFactories
 	/// </summary>
 	internal class ArchPropFactory : IPropFactory
 	{
-		/// <summary>
-		/// Create a default Arch prop
-		/// </summary>
-		/// <returns>Returns both <see cref="IProp"/> which specifies the new Prop and <see cref="IPropGroup"/> which specifies the group that contains the Prop</returns>
-		public (IProp, IPropGroup) CreateBaseProp()
+		#region IPropFactory
+
+		/// <inheritdoc/>		
+		public IPropGroup GetProps(IPropWizard wizard)
 		{
 			// Create the Arch prop
 			Arch arch = VixenSystem.Props.CreateProp<Arch>(VixenSystem.Props.GenerateUniquePropTitle(PropType.Arch));
 
+			// Transfer the data from the wizard into the arch prop
+			UpdateProp(arch, wizard);
+
 			// Create the collection of props to return 
 			IPropGroup propGroup = new PropGroup();
 
-			// Add the Arch to the prop collections 
+			// Create the arch prop 
 			propGroup.Props.Add(arch);
 
 			// Return the collection of props
-			return (arch, propGroup);
+			return propGroup;
 		}
 
 		/// <summary>
@@ -96,5 +98,7 @@ namespace VixenApplication.SetupDisplay.Wizards.PropFactories
 			arch.SingleColorOption = colorPage.SingleColorOption;
 			arch.SelectedColorSet = colorPage.SelectedColorSet;
 		}
+
+		#endregion
 	}
 }

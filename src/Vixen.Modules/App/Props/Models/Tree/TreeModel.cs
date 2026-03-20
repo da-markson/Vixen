@@ -19,7 +19,12 @@ namespace VixenModules.App.Props.Models.Tree
 		{
 		}
 
-
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="strings">Number of string</param>
+		/// <param name="nodesPerString">Nodes (lights) per string</param>
+		/// <param name="nodeSize">Node (light) size </param>
 		public TreeModel(int strings = 16, int nodesPerString = 50, int nodeSize = 2)
 		{
 			PropertyChanged += PropertyModelChanged;			
@@ -116,6 +121,7 @@ namespace VixenModules.App.Props.Models.Tree
 		}
 
 		#endregion
+
 		/// <summary>
 		/// Creates the 3-D points that make up the tree.
 		/// </summary>
@@ -147,8 +153,7 @@ namespace VixenModules.App.Props.Models.Tree
 				treePoints.AddRange(CreateStrand(NodesPerString, angle, bottomRadius, radiusDelta, -height / 2.0, + height / NodesPerString));
 			}
 
-			// (Optionally) rotate the points along the X, Y, and Z axis
-			//ToDo : Replace null with rotation
+			// (Optionally) rotate the points along the X, Y, and Z axis			
 			RotatePoints(treePoints, AxisRotationModel);	
 
 			return treePoints;

@@ -2,6 +2,8 @@
 using Catel.IoC;
 using Catel.MVVM;
 using Catel.Services;
+
+using Common.Controls.Wizard;
 using Common.WPFCommon.Services;
 using GongSolutions.Wpf.DragDrop;
 using Orc.Theming;
@@ -1033,24 +1035,23 @@ namespace VixenApplication.SetupDisplay.ViewModels
 			return mbs.GetUserInput($"Please enter the {nameType} name.", $"Create {nameType}", suggestedName);
 		}
 
-		private async Task<IPropGroup?> GeneratePropNodes(PropType propType)
+		/// <summary>
+		/// Creates the wizard for the specified prop type.
+		/// </summary>
+		/// <param name="propType">Type of prop wizard to create</param>
+		/// <param name="dependencyResolver">Catel dependency resolver</param>
+		/// <returns></returns>
+		/// <exception cref="InvalidOperationException"></exception>
+		private (IPropWizard? Wizard, IPropFactory Factory) CreateWizard(PropType propType, IDependencyResolver dependencyResolver)
 		{			
-			var dependencyResolver = this.GetDependencyResolver();
-
 			// Get the Catel type factory
 			ITypeFactory typeFactory = this.GetTypeFactory();
-
-			// Create a Prop Factory for the specific prop type 
-			IPropFactory newPropFactory = PropWizardFactory.CreateInstance(propType);
-
-			// Create a default Prop
-			(IProp newProp, IPropGroup propGroup) = newPropFactory.CreateBaseProp();
 
 			// Retrieve the color scheme service
 			IBaseColorSchemeService? baseColorService = (IBaseColorSchemeService?)dependencyResolver.Resolve(typeof(IBaseColorSchemeService));
 
 			ArgumentNullException.ThrowIfNull(baseColorService);
-						
+
 			// Select the dark color scheme
 			baseColorService.SetBaseColorScheme("Dark");
 
@@ -1061,7 +1062,7 @@ namespace VixenApplication.SetupDisplay.ViewModels
 			{
 				throw new InvalidOperationException("Unable to create Wizard");
 			}
-			
+
 			// Configure the wizard window to show up in the Windows task bar
 			propWizard.Wizard.ShowInTaskbarWrapper = true;
 
@@ -1080,23 +1081,44 @@ namespace VixenApplication.SetupDisplay.ViewModels
 			// Configure the wizard with a navigation controller														
 			propWizard.Wizard.NavigationControllerWrapper = typeFactory.CreateInstanceWithParametersAndAutoCompletion<PropWizardNavigationController>(propWizard.Wizard);
 
-			newPropFactory.LoadWizard(newProp, propWizard.Wizard);
+			return propWizard;
+		}
 
-			var ws = dependencyResolver.Resolve<IWizardService>();
+		/// <summary>
+		/// Generates prop nodes using a prop wizard of the specified prop type.
+		/// </summary>
+		/// <param name="propType">Type of prop</param>
+		/// <returns>A group of prop nodes</returns>
+		private async Task<IPropGroup?> GeneratePropNodes(PropType propType)
+		{
+			// Get the Catel dependency resolver
+			IDependencyResolver dependencyResolver = this.GetDependencyResolver();
+
+			// Create the prop specific wizard and factory
+			(IPropWizard? Wizard, IPropFactory Factory) propWizard = CreateWizard(propType, dependencyResolver);
+
+			// Create the Catel Wizard service
+			IWizardService ws = dependencyResolver.Resolve<IWizardService>();
+
+			// If the Catel Wizard service was successfully created and
+			// the prop specific wizard was successfully created then...
 			if (ws != null && propWizard.Wizard != null)
 			{
+				// Show the Prop Wizard
 				bool? result = (await ws.ShowWizardAsync(propWizard.Wizard)).DialogResult;
+
 				// Determine if the wizard was cancelled 
 				if (result.HasValue && result.Value)
 				{
-					// Have the prop factory update the default prop from the wizard data
-					newPropFactory.UpdateProp(newProp, propWizard.Wizard);
+					// Have the prop factory create the props from the wizard data
+					IPropGroup propGroup = propWizard.Factory.GetProps(propWizard.Wizard);
 
 					// User did not cancel					
 					return propGroup;  
 				}
 			}
 
+			// Indicate the user cancelled
 			return null;
 		}
 
@@ -1107,61 +1129,34 @@ namespace VixenApplication.SetupDisplay.ViewModels
 		/// <returns>The <see cref="IPropGroup"/> that contains the updated Prop</returns>
 		private async void EditPropNode(IProp existingProp)
 		{
-			var dependencyResolver = this.GetDependencyResolver();
+			// Get the Catel dependency resolver
+			IDependencyResolver dependencyResolver = this.GetDependencyResolver();
 
-			// Get the Catel type factory
-			ITypeFactory typeFactory = this.GetTypeFactory();
+			// Create the prop specific wizard and factory
+			(IPropWizard? Wizard, IPropFactory Factory) propWizard = CreateWizard(existingProp.PropType, dependencyResolver);
 
-			// Configure current prop for editing
-			IPropFactory newPropFactory = PropWizardFactory.CreateInstance(existingProp.PropType);
+			// Load the wizard with the data from the existing prop
+			propWizard.Factory.LoadWizard(existingProp, propWizard.Wizard);
+			
+			// Create the Catel Wizard service
+			IWizardService ws = dependencyResolver.Resolve<IWizardService>();
 
-			// Retrieve the color scheme service
-			IBaseColorSchemeService baseColorService = (IBaseColorSchemeService)dependencyResolver.Resolve(typeof(IBaseColorSchemeService));
-
-			// Select the dark color scheme
-			baseColorService.SetBaseColorScheme("Dark");
-
-			// Use the type factory to create the prop wizard
-			(IPropWizard Wizard, IPropFactory Factory) propWizard = PropWizardFactory.CreateInstance(existingProp.PropType, typeFactory);
-
-
-			// Configure the wizard window to show up in the Windows task bar
-			propWizard.Wizard.ShowInTaskbarWrapper = true;
-
-			// Enable the help button
-			propWizard.Wizard.ShowHelpWrapper = true;
-
-			// Configure the wizard to allow the user to jump between already visited pages
-			propWizard.Wizard.AllowQuickNavigationWrapper = true;
-
-			// Allow Catel to help determine when it is safe to transition to the next wizard page
-			propWizard.Wizard.HandleNavigationStatesWrapper = true;
-
-			// Configure the wizard to NOT cache views
-			propWizard.Wizard.CacheViewsWrapper = false;
-
-			// Configure the wizard with a navigation controller														
-			propWizard.Wizard.NavigationControllerWrapper = typeFactory.CreateInstanceWithParametersAndAutoCompletion<PropWizardNavigationController>(propWizard.Wizard);
-
-			newPropFactory.LoadWizard(existingProp, propWizard.Wizard);
-
-			var ws = dependencyResolver.Resolve<IWizardService>();
+			// If the Catel Wizard service was successfully created and
+			// the prop specific wizard was successfully created then...
 			if (ws != null && propWizard.Wizard != null)
 			{
+				// Show the Prop Wizard
 				bool? result = (await ws.ShowWizardAsync(propWizard.Wizard)).DialogResult;
+
 				// Determine if the wizard was cancelled 
 				if (result.HasValue && result.Value)
 				{
 					// Have the prop factory update the prop from the wizard data
-					newPropFactory.UpdateProp(existingProp, propWizard.Wizard);
-
-					// User did not cancel					
-					return;
+					propWizard.Factory.UpdateProp(existingProp, propWizard.Wizard);
 				}
-			}
-
-			return;
+			}			
 		}
+
 		#endregion
 
 		#region Event Handling

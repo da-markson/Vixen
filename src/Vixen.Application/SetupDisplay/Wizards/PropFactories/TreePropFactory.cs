@@ -12,23 +12,25 @@ namespace VixenApplication.SetupDisplay.Wizards.PropFactories
 	/// </summary>
 	internal class TreePropFactory : IPropFactory
 	{
-		/// <summary>
-		/// Create a default Tree prop
-		/// </summary>
-		/// <returns>Returns both <see cref="IProp"/> which specifies the new Prop and <see cref="IPropGroup"/> which specifies the group that contains the Prop</returns>
-		public (IProp, IPropGroup) CreateBaseProp()
+		#region IPropFactory
+
+		/// <inheritdoc/>		
+		public IPropGroup GetProps(IPropWizard wizard)
 		{
 			// Create the Tree prop
-			Tree Tree = VixenSystem.Props.CreateProp<Tree>(VixenSystem.Props.GenerateUniquePropTitle(PropType.Tree));
+			Tree tree = VixenSystem.Props.CreateProp<Tree>(VixenSystem.Props.GenerateUniquePropTitle(PropType.Tree));
+
+			// Transfer the data from the wizard into the tree prop
+			UpdateProp(tree, wizard);
 
 			// Create the collection of props to return 
 			IPropGroup propGroup = new PropGroup();
 
 			// Add the Tree to the prop collections 
-			propGroup.Props.Add(Tree);
+			propGroup.Props.Add(tree);
 
 			// Return the collection of props
-			return (Tree, propGroup);
+			return propGroup;
 		}
 
 		/// <summary>
@@ -116,5 +118,7 @@ namespace VixenApplication.SetupDisplay.Wizards.PropFactories
 			tree.SingleColorOption = colorPage.SingleColorOption;
 			tree.SelectedColorSet = colorPage.SelectedColorSet;
 		}
+
+		#endregion
 	}
 }

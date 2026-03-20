@@ -1,11 +1,17 @@
-﻿using Catel.Data;
-using Orc.Wizard;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+
+using Catel.Data;
+
 using Common.WPFCommon.Converters;
+
+using Orc.Wizard;
+
 using Vixen.Extensions;
 using Vixen.Sys;
 using Vixen.Sys.Props;
+
 using VixenApplication.SetupDisplay.ViewModels;
+
 using VixenModules.App.Props;
 using VixenModules.App.Props.Models.Tree;
 
@@ -21,7 +27,11 @@ namespace VixenApplication.SetupDisplay.Wizards.Pages
 			// Generic parameters
 			Name = "Tree 1";
 			Strings = 16;
-			NodesPerString = 50;
+			NodesPerString = 50;						
+			DegreesCoverage = 360;
+			LightSize = 2;
+			TopRadius = 10;
+			BottomRadius = 100;
 		}
 		#region Name property
 
